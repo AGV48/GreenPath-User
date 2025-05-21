@@ -1,10 +1,10 @@
 <?php
     // Iniciar sesión y verificar autenticación
     session_start();
-    require_once '../../usuarios/config/conexion.php';
+    require_once '../config/conexion.php';
 
     if (!isset($_SESSION['user_email'])) {
-        header("Location: ../../usuarios/index.php");
+        header("Location: ../index.php");
         exit();
     }
 
@@ -16,8 +16,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $title; ?></title>
-    <link rel="stylesheet" href="../../usuarios/front/css/styles.css">
-    <link rel="shortcut icon" href="../../usuarios/front/media/logo.png">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="shortcut icon" href="media/logo.png">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="min-h-screen bg-gray-50">
@@ -30,9 +30,12 @@
                     </svg>
                     Volver
                 </a>
-                <div>
-                    <h1 class="text-2xl font-bold">GREENPATH</h1>
-                    <h2 class="text-xl">VISIONS</h2>
+                <div class="flex items-center space-x-2 gap-4">
+                    <img src="media/logo.png" width="50" height="50" alt="Logo de GREENPATH">
+                    <div>
+                        <h1 class="text-2xl font-bold">GREENPATH</h1>
+                        <h2 class="text-xl">VISIONS</h2>
+                    </div>
                 </div>
             </div>
         </div>
@@ -44,7 +47,7 @@
                 <h2 class="text-xl font-bold">Cambiar contraseña</h2>
             </div>
 
-            <form id="passwordForm" action="../../usuarios/back/change_password_back.php" method="POST" class="p-6 space-y-4">
+            <form id="passwordForm" action="../back/change_password_back.php" method="POST" class="p-6 space-y-4">
                 <div>
                     <label for="current_password" class="block text-sm font-medium text-gray-700 mb-1">
                         Contraseña actual
@@ -112,7 +115,7 @@
                         text: decodedMessage,
                         confirmButtonColor: '#16a34a',
                     }).then(() => {
-                        window.location.href = "../../usuarios/front/profile.php";
+                        window.location.href = "profile.php";
                     });
                 } else if (status === 'error') {
                     Swal.fire({

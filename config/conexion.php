@@ -1,10 +1,12 @@
 <?php
-    // variables para la conexión a la base de datos tomadas de xampp
-    $servidor = "localhost";
-    $usuario = "root";
-    $contrasena = "";
-    $base_datos = "greenpath";
+$servername = "db";  // Nombre del servicio en docker-compose
+$username = "root";
+$password = "root";  // Debe coincidir con MYSQL_ROOT_PASSWORD
+$database = "greenpath";
 
-    // Conexión a la base de datos
-    $conexion = mysqli_connect($servidor, $usuario, $contrasena, $base_datos);
+$conexion = new mysqli($servername, $username, $password, $database);
+
+if ($conexion->connect_error) {
+    die("Conexión fallida: " . $conexion->connect_error);
+}
 ?>

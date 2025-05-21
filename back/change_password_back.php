@@ -1,9 +1,9 @@
 <?php
     session_start();
-    include "../../usuarios/config/conexion.php";
+    include "../config/conexion.php";
 
     if (!isset($_SESSION['user_email'])) {
-        header("Location: ../../usuarios/index.php");
+        header("Location: ../index.php");
         exit();
     }
 
@@ -15,21 +15,21 @@
     // Validar campos vacíos
     if (empty($current_password) || empty($new_password) || empty($confirm_password)) {
         $message = urlencode("Por favor, completa todos los campos");
-        header("Location: ../../usuarios/front/change_password.php?status=error&message=$message");
+        header("Location: ../front/change_password.php?status=error&message=$message");
         exit();
     }
 
     // Validar que las nuevas contraseñas coincidan
     if ($new_password !== $confirm_password) {
         $message = urlencode("Las nuevas contraseñas no coinciden");
-        header("Location: ../../usuarios/front/change_password.php?status=error&message=$message");
+        header("Location: ../front/change_password.php?status=error&message=$message");
         exit();
     }
 
     // Validar longitud mínima
     if (strlen($new_password) < 8) {
         $message = urlencode("La nueva contraseña debe tener al menos 8 caracteres");
-        header("Location: ../../usuarios/front/change_password.php?status=error&message=$message");
+        header("Location: ../front/change_password.php?status=error&message=$message");
         exit();
     }
 
@@ -42,7 +42,7 @@
     
     if (!$user || $user['contrasena'] !== $current_password) {
         $message = urlencode("La contraseña actual es incorrecta");
-        header("Location: ../../usuarios/front/change_password.php?status=error&message=$message");
+        header("Location: ../front/change_password.php?status=error&message=$message");
         exit();
     }
 
@@ -52,10 +52,10 @@
     
     if ($update_stmt->execute()) {
         $message = urlencode("Contraseña cambiada exitosamente");
-        header("Location: ../../usuarios/front/change_password.php?status=success&message=$message");
+        header("Location: ../front/change_password.php?status=success&message=$message");
     } else {
         $message = urlencode("Error al cambiar la contraseña");
-        header("Location: ../../usuarios/front/change_password.php?status=error&message=$message");
+        header("Location: ../front/change_password.php?status=error&message=$message");
     }
 
     $stmt->close();

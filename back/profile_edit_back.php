@@ -2,11 +2,11 @@
     // se inicia la sesión
     session_start();
     // Se incluye el archivo de conexión a la base de datos
-    include "../../usuarios/config/conexion.php";
+    include "../config/conexion.php";
 
     // Verificar si el usuario está logueado
     if (!isset($_SESSION['user_email'])) {
-        header("Location: ../../usuarios/index.php");
+        header("Location: ../index.php");
         exit();
     }
 
@@ -18,14 +18,14 @@
     // Validar campos vacíos
     if (empty($name) || empty($email)) {
         $message = urlencode("Por favor, completa todos los campos");
-        header("Location: ../../usuarios/front/profile_edit.php?status=error&message=$message");
+        header("Location: ../front/profile_edit.php?status=error&message=$message");
         exit();
     }
 
     // Validar formato de email
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $message = urlencode("El formato del email no es válido");
-        header("Location: ../../usuarios/front/profile_edit.php?status=error&message=$message");
+        header("Location: ../front/profile_edit.php?status=error&message=$message");
         exit();
     }
 
@@ -38,7 +38,7 @@
         
         if ($result->num_rows > 0) {
             $message = urlencode("El email ya está en uso por otro usuario");
-            header("Location: ../../usuarios/front/profile_edit.php?status=error&message=$message");
+            header("Location: ../front/profile_edit.php?status=error&message=$message");
             exit();
         }
     }
@@ -53,10 +53,10 @@
         $_SESSION['user_email'] = $email;
         
         $message = urlencode("Perfil actualizado correctamente");
-        header("Location: ../../usuarios/front/profile_edit.php?status=success&message=$message");
+        header("Location: ../front/profile_edit.php?status=success&message=$message");
     } else {
         $message = urlencode("Error al actualizar el perfil");
-        header("Location: ../../usuarios/front/profile_edit.php?status=error&message=$message");
+        header("Location: ../front/profile_edit.php?status=error&message=$message");
     }
 
     $stmt->close();

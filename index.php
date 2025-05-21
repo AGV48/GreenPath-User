@@ -3,7 +3,7 @@
     session_start();
 
     // Se incluye el archivo de conexión a la base de datos
-    require_once '../usuarios/config/conexion.php';
+    require_once 'config/conexion.php';
 
     $title = "Inicio de sesión - GREENPATH VISIONS";
 ?>
@@ -13,19 +13,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $title; ?></title>
-    <link rel="stylesheet" href="../usuarios/front/css/styles.css">
-    <link rel="shortcut icon" href="../usuarios/front/media/logo.png">
+    <link rel="stylesheet" href="front/css/styles.css">
+    <link rel="shortcut icon" href="front/media/logo.png">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="min-h-screen bg-gradient-to-b from-green-50 to-green-100 flex flex-col items-center justify-center p-4">
     <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
         <div class="text-center mb-8">
-            <img src="/usuarios/front/media/logo.png" width="100" height="100" alt="Logo de GREENPATH">
+            <img src="front/media/logo.png" width="100" height="100" alt="Logo de GREENPATH">
             <h1 class="text-4xl font-bold text-green-600 mb-2">GREENPATH</h1>
             <h2 class="text-2xl font-semibold text-gray-700">VISIONS</h2>
         </div>
 
-        <form class="space-y-6" action="../usuarios/back/login_back.php" method="POST">
+        <form class="space-y-6" action="back/login_back.php" method="POST">
             <div>
                 <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
                     Correo electrónico
@@ -54,6 +54,8 @@
                 >
             </div>
 
+            <br>
+
             <button
                 type="submit"
                 class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200"
@@ -64,7 +66,7 @@
 
         <div class="mt-6 text-center">
             <p class="text-gray-600">
-                ¿No tienes una cuenta? <a href="../usuarios/front/register.php" class="text-green-600 hover:text-green-800 font-medium">Crear cuenta</a>
+                ¿No tienes una cuenta? <a href="front/register.php" class="text-green-600 hover:text-green-800 font-medium">Crear cuenta</a>
             </p>
         </div>
     </div>
@@ -85,7 +87,7 @@
                         text: decodedMessage,
                         confirmButtonColor: '#16a34a',
                     }).then(() => {
-                        window.location.href = "../../usuarios/index.php";
+                        window.location.href = "../index.php";
                     });
                 }
             }

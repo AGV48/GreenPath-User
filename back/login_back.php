@@ -14,7 +14,7 @@
         echo '
             <script>
                 alert("Por favor, completa todos los campos");
-                window.location = "../../usuarios/index.php";
+                window.location = "../index.php";
             </script>';
         exit();
     }
@@ -36,11 +36,11 @@
         
         echo '
             <script>
-                window.location = "../../usuarios/front/dashboard.php";
+                window.location = "../front/dashboard.php";
             </script>';
     } else {
         $message = urlencode("Usuario o contraseñas incorrectos");
-        header("Location: ../../usuarios/index.php?status=error&message=$message");
+        header("Location: ../index.php?status=error&message=$message");
         exit();
     }
 

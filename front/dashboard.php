@@ -3,11 +3,11 @@
     session_start();
     
     // Se incluye el archivo de conexión a la base de datos
-    require_once '../../usuarios/config/conexion.php';
+    require_once '../config/conexion.php';
 
     // Verificar si el usuario está logueado
     if (!isset($_SESSION['user_email'])) {
-        header("Location: ../../usuarios/index.php");
+        header("Location: ../index.php");
         exit();
     }
 
@@ -33,8 +33,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $title; ?></title>
-    <link rel="stylesheet" href="../../usuarios/front/css/styles.css">
-    <link rel="shortcut icon" href="../../usuarios/front/media/logo.png">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="shortcut icon" href="media/logo.png">
 </head>
 <body class="min-h-screen bg-gray-50">
     <header class="bg-green-600 text-white p-4 shadow-md">
@@ -46,17 +46,20 @@
                     </svg>
                     Volver
                 </a>
-                <div>
-                    <h1 class="text-2xl font-bold">GREENPATH</h1>
-                    <h2 class="text-xl">VISIONS</h2>
+                <div class="flex items-center space-x-2 gap-4">
+                    <img src="media/logo.png" width="50" height="50" alt="Logo de GREENPATH">
+                    <div>
+                        <h1 class="text-2xl font-bold">GREENPATH</h1>
+                        <h2 class="text-xl">VISIONS</h2>
+                    </div>
                 </div>
             </div>
 
             <nav class="flex items-center space-x-4">
-                <a href="../../usuarios/front/profile.php" class="text-white hover:text-green-200">
-                    <img src="../../usuarios/front/media/user.png" width="100" alt="Perfil">
+                <a href="profile.php" class="text-white hover:text-green-200">
+                    <img src="media/user.png" width="100" alt="Perfil">
                 </a>
-                <a href="../../usuarios/index.php" class="text-white hover:text-green-200">
+                <a href="../index.php" class="text-white hover:text-green-200">
                     Cerrar sesión
                 </a>
             </nav>
@@ -81,7 +84,7 @@
                 </div>
             </div>
             
-            <a href="../../usuarios/front/dispose.php" class="bg-green-100 text-green-800 rounded-xl shadow-sm p-6 hover:shadow-md transition cursor-pointer">
+            <a href="dispose.php" class="bg-green-100 text-green-800 rounded-xl shadow-sm p-6 hover:shadow-md transition cursor-pointer">
                 <div class="flex items-center space-x-3">
                     <span class="text-2xl">♻️</span>
                     <h3 class="text-lg font-semibold">Desecha</h3>

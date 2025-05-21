@@ -7,20 +7,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $title; ?></title>
-    <link rel="stylesheet" href="../front/css/styles.css">
-    <link rel="shortcut icon" href="../front/media/logo.png">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="shortcut icon" href="media/logo.png">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="min-h-screen bg-gradient-to-b from-green-50 to-green-100 flex flex-col items-center justify-center p-4">
     <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
         <div class="text-center mb-8">
-            <img src="../front/media/logo.png" width="100" height="100" alt="Logo de GREENPATH">
+            <img src="media/logo.png" width="100" height="100" alt="Logo de GREENPATH">
             <h1 class="text-4xl font-bold text-green-600 mb-2">GREENPATH</h1>
             <h2 class="text-2xl font-semibold text-gray-700">VISIONS</h2>
             <p class="text-gray-600 mt-2"><b>Crea tu cuenta</b></p>
         </div>
 
-        <form id="registerForm" action="../../usuarios/back/register_back.php" class="space-y-4" method="POST">
+        <form id="registerForm" action="../back/register_back.php" class="space-y-4" method="POST">
             <div>
                 <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
                     Nombre completo
@@ -124,7 +124,7 @@
                         text: decodedMessage,
                         confirmButtonColor: '#16a34a',
                     }).then(() => {
-                        window.location.href = "../../usuarios/index.php";
+                        window.location.href = "../index.php";
                     });
                 } else if (status === 'error') {
                     Swal.fire({
@@ -133,7 +133,7 @@
                         text: decodedMessage,
                         confirmButtonColor: '#16a34a',
                     }).then(() => {
-                        window.location.href = "../../usuarios/front/register.php";
+                        window.location.href = "register.php";
                     });
                 }
             }
