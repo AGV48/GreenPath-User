@@ -92,7 +92,7 @@
                 <div class="user-dropdown">
                     <button class="nav-link flex items-center">
                         <i class="fas fa-user-circle mr-2"></i>
-                        <span><?php echo htmlspecialchars($nombre_usuario); ?></span>
+                        <span><?php echo htmlspecialchars($user_name); ?></span>
                         <i class="fas fa-chevron-down ml-2 text-xs"></i>
                     </button>
                     <div class="user-dropdown-content">
@@ -114,7 +114,7 @@
                 
                 <div class="points-display">
                     <i class="fas fa-coins mr-2"></i>
-                    <span class="font-bold"><?php echo $puntos; ?> pts</span>
+                    <span class="font-bold"><?php echo $user_points; ?> pts</span>
                 </div>
             </nav>
         </div>
