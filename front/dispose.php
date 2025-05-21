@@ -1,5 +1,58 @@
 <?php
+    // Iniciar sesión y verificar autenticación
+    session_start();
+    require_once '../config/conexion.php';
+    
+    if (!isset($_SESSION['user_email'])) {
+        header("Location: ../index.php");
+        exit();
+    }
+
     $title = "Desechar residuos - GREENPATH VISIONS";
+    
+    // Procesar el escaneo si se recibió un código QR
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['qr_content'])) {
+        $qr_content = $_POST['qr_content'];
+        $user_email = $_SESSION['user_email'];
+        
+        try {
+            // Obtener puntos actuales del usuario
+            $query = "SELECT puntos FROM usuarios WHERE correo = :email";
+            $stmt = $conexion->prepare($query);
+            $stmt->bindParam(':email', $user_email);
+            $stmt->execute();
+            $user_data = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            $current_points = $user_data ? $user_data['puntos'] : 0;
+            $points_to_add = 10; // Puntos a añadir por cada escaneo
+            
+            // Actualizar puntos en la base de datos
+            $update_query = "UPDATE usuarios SET puntos = puntos + :points WHERE correo = :email";
+            $update_stmt = $conexion->prepare($update_query);
+            $update_stmt->bindParam(':points', $points_to_add);
+            $update_stmt->bindParam(':email', $user_email);
+            $update_stmt->execute();
+            
+            // Devolver respuesta JSON
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => '¡Puntos añadidos correctamente!',
+                'new_points' => $current_points + $points_to_add,
+                'points_added' => $points_to_add
+            ]);
+            exit();
+            
+        } catch (PDOException $e) {
+            error_log("Error al actualizar puntos: " . $e->getMessage());
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error al procesar los puntos'
+            ]);
+            exit();
+        }
+    }
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -69,81 +122,109 @@
     </main>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const scannerButton = document.getElementById('start-scanner');
-            const videoElement = document.getElementById('qr-scanner');
-            const scannerContainer = document.getElementById('scanner-container');
-            const scannerStatus = document.getElementById('scanner-status');
-            const scanResult = document.getElementById('scan-result');
-            
-            let scanner = null;
-            let isScanning = false;
+    document.addEventListener('DOMContentLoaded', function() {
+        const scannerButton = document.getElementById('start-scanner');
+        const videoElement = document.getElementById('qr-scanner');
+        const scannerContainer = document.getElementById('scanner-container');
+        const scannerStatus = document.getElementById('scanner-status');
+        const scanResult = document.getElementById('scan-result');
+        
+        let scanner = null;
+        let isScanning = false;
 
-            scannerButton.addEventListener('click', function() {
-                if (!isScanning) {
-                    startScanner();
-                } else {
-                    stopScanner();
-                }
-            });
-
-            function startScanner() {
-                scannerStatus.textContent = "Buscando cámara...";
-                
-                // Configurar el escáner
-                scanner = new Instascan.Scanner({
-                    video: videoElement,
-                    mirror: false,
-                    backgroundScan: true,
-                    refractoryPeriod: 5000,
-                    scanPeriod: 1
-                });
-
-                scanner.addListener('scan', function(content) {
-                    scanResult.textContent = "Código QR escaneado: " + content;
-                    scanResult.classList.remove('hidden');
-                    
-                    // Aquí puedes enviar el contenido del QR al servidor para procesarlo
-                    // Por ejemplo con fetch() o AJAX
-                    console.log("QR escaneado:", content);
-                    
-                    // Detener el escáner después de leer
-                    stopScanner();
-                });
-
-                // Buscar cámaras disponibles
-                Instascan.Camera.getCameras().then(function(cameras) {
-                    if (cameras.length > 0) {
-                        scanner.start(cameras[0]).then(function() {
-                            videoElement.style.display = 'block';
-                            scannerContainer.innerHTML = '';
-                            scannerContainer.appendChild(videoElement);
-                            scannerStatus.textContent = "Escaneando...";
-                            scannerButton.textContent = "Detener cámara";
-                            isScanning = true;
-                        }).catch(function(e) {
-                            console.error(e);
-                            scannerStatus.textContent = "Error al iniciar la cámara: " + e;
-                        });
-                    } else {
-                        scannerStatus.textContent = "No se encontraron cámaras disponibles";
-                    }
-                }).catch(function(e) {
-                    console.error(e);
-                    scannerStatus.textContent = "Error al acceder a la cámara: " + e;
-                });
-            }
-
-            function stopScanner() {
-                if (scanner) {
-                    scanner.stop();
-                }
-                videoElement.style.display = 'none';
-                scannerContainer.innerHTML = '<p id="scanner-status" class="text-gray-500">Cámara detenida</p>';
-                scannerButton.textContent = "Activar cámara";
-                isScanning = false;
+        scannerButton.addEventListener('click', function() {
+            if (!isScanning) {
+                startScanner();
+            } else {
+                stopScanner();
             }
         });
-    </script>
+
+        function startScanner() {
+            scannerStatus.textContent = "Buscando cámara...";
+            
+            scanner = new Instascan.Scanner({
+                video: videoElement,
+                mirror: false,
+                backgroundScan: true,
+                refractoryPeriod: 5000,
+                scanPeriod: 1
+            });
+
+            scanner.addListener('scan', function(content) {
+                scanResult.textContent = "Código QR escaneado: " + content;
+                scanResult.classList.remove('hidden');
+                
+                // Enviar el contenido del QR al servidor
+                fetch(window.location.href, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'qr_content=' + encodeURIComponent(content)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        scanResult.innerHTML = `
+                            <div class="bg-green-100 text-green-800 p-3 rounded">
+                                ${data.message}<br>
+                                Puntos añadidos: +${data.points_added}<br>
+                                Nuevo total: ${data.new_points} puntos
+                            </div>
+                        `;
+                    } else {
+                        scanResult.innerHTML = `
+                            <div class="bg-red-100 text-red-800 p-3 rounded">
+                                Error: ${data.message}
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    scanResult.innerHTML = `
+                        <div class="bg-red-100 text-red-800 p-3 rounded">
+                            Error al comunicarse con el servidor
+                        </div>
+                    `;
+                });
+                
+                stopScanner();
+            });
+
+            Instascan.Camera.getCameras().then(function(cameras) {
+                if (cameras.length > 0) {
+                    scanner.start(cameras[0]).then(function() {
+                        videoElement.style.display = 'block';
+                        scannerContainer.innerHTML = '';
+                        scannerContainer.appendChild(videoElement);
+                        scannerStatus.textContent = "Escaneando...";
+                        scannerButton.textContent = "Detener cámara";
+                        isScanning = true;
+                    }).catch(function(e) {
+                        console.error(e);
+                        scannerStatus.textContent = "Error al iniciar la cámara: " + e;
+                    });
+                } else {
+                    scannerStatus.textContent = "No se encontraron cámaras disponibles";
+                }
+            }).catch(function(e) {
+                console.error(e);
+                scannerStatus.textContent = "Error al acceder a la cámara: " + e;
+            });
+        }
+
+        function stopScanner() {
+            if (scanner) {
+                scanner.stop();
+            }
+            videoElement.style.display = 'none';
+            scannerContainer.innerHTML = '<p id="scanner-status" class="text-gray-500">Cámara detenida</p>';
+            scannerButton.textContent = "Activar cámara";
+            isScanning = false;
+        }
+    });
+</script>
 </body>
 </html>
