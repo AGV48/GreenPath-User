@@ -140,63 +140,54 @@
         }
     });
 
-    async function startScanner() {
-        scannerStatus.textContent = "Buscando cámara...";
-        
-        try {
-            // 1. Configurar constraints para la cámara trasera
-            const constraints = {
-                video: {
-                    facingMode: 'environment',
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 }
+    function startScanner() {
+    scannerStatus.textContent = "Buscando cámara...";
+    
+    Instascan.Camera.getCameras()
+        .then(function(cameras) {
+            if (cameras.length > 0) {
+                // Buscar la cámara trasera por nombre o posición
+                let backCamera = cameras.find(camera => 
+                    camera.name.toLowerCase().includes('back') || 
+                    camera.facingMode === 'environment'
+                );
+
+                // Si no se encuentra, usar la última cámara (suele ser la trasera)
+                if (!backCamera && cameras.length > 1) {
+                    backCamera = cameras[cameras.length - 1];
+                } else if (!backCamera) {
+                    backCamera = cameras[0]; // Fallback a la única cámara disponible
                 }
-            };
 
-            // 2. Obtener el stream de la cámara
-            stream = await navigator.mediaDevices.getUserMedia(constraints);
-            
-            // 3. Asignar el stream al elemento <video> (con compatibilidad para navegadores antiguos)
-            if ('srcObject' in videoElement) {
-                videoElement.srcObject = stream;
+                // Iniciar scanner con la cámara seleccionada
+                scanner = new Instascan.Scanner({
+                    video: videoElement,
+                    mirror: false, // Desactivar espejo para la trasera
+                    scanPeriod: 1
+                });
+
+                scanner.start(backCamera)
+                    .then(() => {
+                        videoElement.style.display = 'block';
+                        scannerContainer.innerHTML = '';
+                        scannerContainer.appendChild(videoElement);
+                        scannerStatus.textContent = "Escaneando...";
+                        scannerButton.textContent = "Detener cámara";
+                        isScanning = true;
+                    })
+                    .catch(error => {
+                        console.error("Error al iniciar cámara:", error);
+                        scannerStatus.textContent = "Error al iniciar la cámara trasera.";
+                    });
             } else {
-                videoElement.src = window.URL.createObjectURL(stream); // Para navegadores antiguos
+                scannerStatus.textContent = "No se encontraron cámaras.";
             }
-
-            // 4. Esperar a que el video esté listo para reproducir
-            videoElement.onloadedmetadata = () => {
-                videoElement.play();
-                videoElement.style.display = 'block';
-                scannerContainer.innerHTML = '';
-                scannerContainer.appendChild(videoElement);
-                scannerStatus.textContent = "Escaneando...";
-                scannerButton.textContent = "Detener cámara";
-                isScanning = true;
-            };
-
-        } catch (error) {
-            console.error("Error al acceder a la cámara:", error);
-            scannerStatus.textContent = `Error: ${error.message || "No se pudo acceder a la cámara"}`;
-            
-            // Mostrar mensajes específicos para errores comunes
-            if (error.name === 'NotAllowedError') {
-                scannerStatus.textContent = "Error: Permiso de cámara denegado. Por favor, habilita los permisos.";
-            } else if (error.name === 'NotFoundError') {
-                scannerStatus.textContent = "Error: No se encontró una cámara trasera.";
-            }
-        }
-    }
-
-    function stopScanner() {
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop()); // Detener todas las pistas
-            stream = null;
-        }
-        videoElement.style.display = 'none';
-        scannerContainer.innerHTML = '<p id="scanner-status" class="text-gray-500">Cámara detenida</p>';
-        scannerButton.textContent = "Activar cámara";
-        isScanning = false;
-    }
+        })
+        .catch(error => {
+            console.error("Error al listar cámaras:", error);
+            scannerStatus.textContent = "Error al acceder a las cámaras.";
+        });
+}
 });
 </script>
 </body>
