@@ -188,6 +188,45 @@
             scannerStatus.textContent = "Error al acceder a las cámaras.";
         });
 }
+    function stopScanner() {
+        if (scanner) {
+            scanner.stop();
+            videoElement.style.display = 'none';
+            scannerButton.textContent = "Activar cámara";
+            scannerStatus.textContent = "Cámara detenida.";
+            isScanning = false;
+        }
+    }
+
+    // Escuchar el evento de escaneo
+    scanner.addListener('scan', function(content) {
+        scanResult.classList.remove('hidden');
+        scanResult.textContent = `Código QR escaneado: ${content}`;
+        
+        // Enviar el contenido del QR al servidor
+        fetch('dispose.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: `qr_content=${encodeURIComponent(content)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                scanResult.textContent = `¡${data.points_added} puntos añadidos! Total: ${data.new_points} puntos.`;
+                scanResult.classList.add('bg-green-100', 'text-green-800');
+            } else {
+                scanResult.textContent = data.message;
+                scanResult.classList.add('bg-red-100', 'text-red-800');
+            }
+        })
+        .catch(error => {
+            console.error("Error al procesar el escaneo:", error);
+            scanResult.textContent = "Error al procesar el escaneo.";
+            scanResult.classList.add('bg-red-100', 'text-red-800');
+        });
+    });
 });
 </script>
 </body>
