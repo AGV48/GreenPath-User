@@ -12,7 +12,7 @@
     
     // Procesar el escaneo si se recibió un código QR
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['qr_content'])) {
-        $qr_content = $_POST['qr_content'];
+        $qr_content = trim($_POST['qr_content']);
         $user_email = $_SESSION['user_email'];
         
         try {
@@ -62,7 +62,7 @@
     <title><?php echo $title; ?></title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="shortcut icon" href="media/logo.png">
-    <script src="https://rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/instascan@1.0.0/dist/instascan.min.js"></script>
 </head>
 <body class="min-h-screen bg-gray-50">
     <header class="bg-green-600 text-white p-4 shadow-md">
@@ -130,7 +130,8 @@
     const scanResult = document.getElementById('scan-result');
     
     let isScanning = false;
-    let stream = null; // Guardar la referencia al stream
+    let scanner = null; // Definir la variable scanner aquí
+    let stream = null;
 
     scannerButton.addEventListener('click', function() {
         if (!isScanning) {
@@ -141,53 +142,81 @@
     });
 
     function startScanner() {
-    scannerStatus.textContent = "Buscando cámara...";
-    
-    Instascan.Camera.getCameras()
-        .then(function(cameras) {
-            if (cameras.length > 0) {
-                // Buscar la cámara trasera por nombre o posición
-                let backCamera = cameras.find(camera => 
-                    camera.name.toLowerCase().includes('back') || 
-                    camera.facingMode === 'environment'
-                );
+        scannerStatus.textContent = "Buscando cámara...";
+        
+        Instascan.Camera.getCameras()
+            .then(function(cameras) {
+                if (cameras.length > 0) {
+                    let backCamera = cameras.find(camera => 
+                        camera.name.toLowerCase().includes('back') || 
+                        camera.facingMode === 'environment'
+                    );
 
-                // Si no se encuentra, usar la última cámara (suele ser la trasera)
-                if (!backCamera && cameras.length > 1) {
-                    backCamera = cameras[cameras.length - 1];
-                } else if (!backCamera) {
-                    backCamera = cameras[0]; // Fallback a la única cámara disponible
-                }
+                    if (!backCamera && cameras.length > 1) {
+                        backCamera = cameras[cameras.length - 1];
+                    } else if (!backCamera) {
+                        backCamera = cameras[0];
+                    }
 
-                // Iniciar scanner con la cámara seleccionada
-                scanner = new Instascan.Scanner({
-                    video: videoElement,
-                    mirror: false, // Desactivar espejo para la trasera
-                    scanPeriod: 1
-                });
-
-                scanner.start(backCamera)
-                    .then(() => {
-                        videoElement.style.display = 'block';
-                        scannerContainer.innerHTML = '';
-                        scannerContainer.appendChild(videoElement);
-                        scannerStatus.textContent = "Escaneando...";
-                        scannerButton.textContent = "Detener cámara";
-                        isScanning = true;
-                    })
-                    .catch(error => {
-                        console.error("Error al iniciar cámara:", error);
-                        scannerStatus.textContent = "Error al iniciar la cámara trasera.";
+                    scanner = new Instascan.Scanner({
+                        video: videoElement,
+                        mirror: false,
+                        scanPeriod: 1
                     });
-            } else {
-                scannerStatus.textContent = "No se encontraron cámaras.";
-            }
-        })
-        .catch(error => {
-            console.error("Error al listar cámaras:", error);
-            scannerStatus.textContent = "Error al acceder a las cámaras.";
-        });
-}
+
+                    // Mover el listener aquí dentro
+                    scanner.addListener('scan', function(content) {
+                        scanResult.classList.remove('hidden');
+                        scanResult.textContent = `Código QR escaneado: ${content}`;
+                        
+                        // Enviar el contenido del QR al servidor
+                        fetch('dispose.php', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: `qr_content=${encodeURIComponent(content)}`
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                scanResult.textContent = `¡${data.points_added} puntos añadidos! Total: ${data.new_points} puntos.`;
+                                scanResult.className = 'mb-4 p-3 bg-green-100 text-green-800 rounded';
+                            } else {
+                                scanResult.textContent = data.message;
+                                scanResult.className = 'mb-4 p-3 bg-red-100 text-red-800 rounded';
+                            }
+                        })
+                        .catch(error => {
+                            console.error("Error al procesar el escaneo:", error);
+                            scanResult.textContent = "Error al procesar el escaneo.";
+                            scanResult.className = 'mb-4 p-3 bg-red-100 text-red-800 rounded';
+                        });
+                    });
+
+                    scanner.start(backCamera)
+                        .then(() => {
+                            videoElement.style.display = 'block';
+                            scannerContainer.innerHTML = '';
+                            scannerContainer.appendChild(videoElement);
+                            scannerStatus.textContent = "Escaneando...";
+                            scannerButton.textContent = "Detener cámara";
+                            isScanning = true;
+                        })
+                        .catch(error => {
+                            console.error("Error al iniciar cámara:", error);
+                            scannerStatus.textContent = "Error al iniciar la cámara trasera.";
+                        });
+                } else {
+                    scannerStatus.textContent = "No se encontraron cámaras.";
+                }
+            })
+            .catch(error => {
+                console.error("Error al listar cámaras:", error);
+                scannerStatus.textContent = "Error al acceder a las cámaras.";
+            });
+    }
+
     function stopScanner() {
         if (scanner) {
             scanner.stop();
@@ -197,36 +226,6 @@
             isScanning = false;
         }
     }
-
-    // Escuchar el evento de escaneo
-    scanner.addListener('scan', function(content) {
-        scanResult.classList.remove('hidden');
-        scanResult.textContent = `Código QR escaneado: ${content}`;
-        
-        // Enviar el contenido del QR al servidor
-        fetch('dispose.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: `qr_content=${encodeURIComponent(content)}`
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                scanResult.textContent = `¡${data.points_added} puntos añadidos! Total: ${data.new_points} puntos.`;
-                scanResult.classList.add('bg-green-100', 'text-green-800');
-            } else {
-                scanResult.textContent = data.message;
-                scanResult.classList.add('bg-red-100', 'text-red-800');
-            }
-        })
-        .catch(error => {
-            console.error("Error al procesar el escaneo:", error);
-            scanResult.textContent = "Error al procesar el escaneo.";
-            scanResult.classList.add('bg-red-100', 'text-red-800');
-        });
-    });
 });
 </script>
 </body>
