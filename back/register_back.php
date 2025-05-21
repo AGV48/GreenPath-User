@@ -1,64 +1,62 @@
 <?php
-    include "../config/conexion.php";
+include "../config/conexion.php";
 
-    // se obtienen los datos del formulario de registro
-    $name = $_POST['name'];
-    $email = $_POST['email'];
-    $password = $_POST['password'];
-    $confirmPassword = $_POST['confirmPassword'];
+$name = $_POST['name'];
+$email = $_POST['email'];
+$password = $_POST['password'];
+$confirmPassword = $_POST['confirmPassword'];
 
-    // se verifica si los campos están vacíos
-    if (empty($name) || empty($email) || empty($password) || empty($confirmPassword)) {
-        $message = urlencode("Por favor, completa todos los campos");
-        header("Location: ../front/register.php?status=error&message=$message");
-        exit();
-    }
+if (empty($name) || empty($email) || empty($password) || empty($confirmPassword)) {
+    $message = urlencode("Por favor, completa todos los campos");
+    header("Location: ../front/register.php?status=error&message=$message");
+    exit();
+}
 
-    // se verifica si la contraseña y la confirmación de contraseña son iguales
-    if ($password !== $confirmPassword) {
-        $message = urlencode("Las contraseñas no coinciden");
-        header("Location: ../front/register.php?status=error&message=$message");
-        exit();
-    }
+if ($password !== $confirmPassword) {
+    $message = urlencode("Las contraseñas no coinciden");
+    header("Location: ../front/register.php?status=error&message=$message");
+    exit();
+}
 
-    // se verifica si la contraseña tiene al menos 8 caracteres
-    if (strlen($password) < 8) {
-        $message = urlencode("La contraseña debe tener al menos 8 caracteres");
-        header("Location: ../front/register.php?status=error&message=$message");
-        exit();
-    }
+if (strlen($password) < 8) {
+    $message = urlencode("La contraseña debe tener al menos 8 caracteres");
+    header("Location: ../front/register.php?status=error&message=$message");
+    exit();
+}
 
-    // se verifica si el email es de gmail, hotmail u outlook
-    if (!str_contains($email, "@gmail.com") && !str_contains($email, "@hotmail.com") && !str_contains($email, "@outlook.com")) {
-        $message = urlencode("Email inválido. Solo se permiten cuentas de Gmail, Hotmail u Outlook");
-        header("Location: ../front/register.php?status=error&message=$message");
-        exit();
-    }
+if (!str_contains($email, "@gmail.com") && !str_contains($email, "@hotmail.com") && !str_contains($email, "@outlook.com")) {
+    $message = urlencode("Email inválido. Solo se permiten cuentas de Gmail, Hotmail u Outlook");
+    header("Location: ../front/register.php?status=error&message=$message");
+    exit();
+}
 
-    // se verifica si el email ya existe en la base de datos
-    $verificar_email = mysqli_query($conexion, "SELECT * FROM usuarios WHERE correo = '$email'");
-    if (mysqli_num_rows($verificar_email) > 0) {
+try {
+    // Verificar si el email existe
+    $stmt = $conexion->prepare("SELECT correo FROM usuarios WHERE correo = :email");
+    $stmt->bindParam(':email', $email);
+    $stmt->execute();
+    
+    if ($stmt->rowCount() > 0) {
         $message = urlencode("Ya existe un usuario con ese email");
         header("Location: ../front/register.php?status=error&message=$message");
         exit();
     }
 
-    // se crea la consulta para insertar los datos en la base de datos
-    $query = "INSERT INTO usuarios (nombre, correo, contrasena, puntos) VALUES ('$name', '$email', '$password', 0)";
-
-    // se ejecuta la consulta
-    $registro = mysqli_query($conexion, $query);
-
-    // se verifica si se ejecutó correctamente la consulta
-    if (!$registro) {
-        $message = urlencode("Error al registrarse. Por favor, inténtalo de nuevo");
-        header("Location: ../front/register.php?status=error&message=$message");
-        exit();
-    } else {
+    // Insertar nuevo usuario
+    $insert = $conexion->prepare("INSERT INTO usuarios (nombre, correo, contrasena, puntos) VALUES (:name, :email, :password, 0)");
+    $insert->bindParam(':name', $name);
+    $insert->bindParam(':email', $email);
+    $insert->bindParam(':password', $password);
+    
+    if ($insert->execute()) {
         $message = urlencode("Usuario registrado exitosamente");
         header("Location: ../front/register.php?status=success&message=$message");
-        exit();
+    } else {
+        $message = urlencode("Error al registrarse. Por favor, inténtalo de nuevo");
+        header("Location: ../front/register.php?status=error&message=$message");
     }
-
-    mysqli_close($conexion);
+} catch (PDOException $e) {
+    $message = urlencode("Error en el sistema: " . $e->getMessage());
+    header("Location: ../front/register.php?status=error&message=$message");
+}
 ?>

@@ -1,54 +1,47 @@
 <?php
-    // se inicia la sesión
-    session_start();
-    // Se incluye el archivo de conexión a la base de datos
-    include "../config/conexion.php";
+session_start();
+include "../config/conexion.php";
 
-    // Verificar si el usuario está logueado
-    if (!isset($_SESSION['user_email'])) {
-        header("Location: ../index.php");
-        exit();
-    }
+if (!isset($_SESSION['user_email'])) {
+    header("Location: ../index.php");
+    exit();
+}
 
-    // Obtener datos antiguos y nuevos
-    $old_email = $_SESSION['user_email'];
-    $name = $_POST['name'];
-    $email = $_POST['email'];
+$old_email = $_SESSION['user_email'];
+$name = $_POST['name'];
+$email = $_POST['email'];
 
-    // Validar campos vacíos
-    if (empty($name) || empty($email)) {
-        $message = urlencode("Por favor, completa todos los campos");
-        header("Location: ../front/profile_edit.php?status=error&message=$message");
-        exit();
-    }
+if (empty($name) || empty($email)) {
+    $message = urlencode("Por favor, completa todos los campos");
+    header("Location: ../front/profile_edit.php?status=error&message=$message");
+    exit();
+}
 
-    // Validar formato de email
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $message = urlencode("El formato del email no es válido");
-        header("Location: ../front/profile_edit.php?status=error&message=$message");
-        exit();
-    }
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    $message = urlencode("El formato del email no es válido");
+    header("Location: ../front/profile_edit.php?status=error&message=$message");
+    exit();
+}
 
-    // Verificar si el nuevo email ya existe (excepto para el usuario actual)
+try {
     if ($email !== $old_email) {
-        $check_email = $conexion->prepare("SELECT correo FROM usuarios WHERE correo = ?");
-        $check_email->bind_param("s", $email);
+        $check_email = $conexion->prepare("SELECT correo FROM usuarios WHERE correo = :email");
+        $check_email->bindParam(':email', $email);
         $check_email->execute();
-        $result = $check_email->get_result();
         
-        if ($result->num_rows > 0) {
+        if ($check_email->rowCount() > 0) {
             $message = urlencode("El email ya está en uso por otro usuario");
             header("Location: ../front/profile_edit.php?status=error&message=$message");
             exit();
         }
     }
 
-    // Actualizar datos en la base de datos
-    $stmt = $conexion->prepare("UPDATE usuarios SET nombre = ?, correo = ? WHERE correo = ?");
-    $stmt->bind_param("sss", $name, $email, $old_email);
+    $stmt = $conexion->prepare("UPDATE usuarios SET nombre = :name, correo = :new_email WHERE correo = :old_email");
+    $stmt->bindParam(':name', $name);
+    $stmt->bindParam(':new_email', $email);
+    $stmt->bindParam(':old_email', $old_email);
     
     if ($stmt->execute()) {
-        // Actualizar datos de sesión
         $_SESSION['user_name'] = $name;
         $_SESSION['user_email'] = $email;
         
@@ -58,7 +51,8 @@
         $message = urlencode("Error al actualizar el perfil");
         header("Location: ../front/profile_edit.php?status=error&message=$message");
     }
-
-    $stmt->close();
-    $conexion->close();
+} catch (PDOException $e) {
+    $message = urlencode("Error en el sistema: " . $e->getMessage());
+    header("Location: ../front/profile_edit.php?status=error&message=$message");
+}
 ?>
