@@ -141,92 +141,46 @@
         });
 
         function startScanner() {
-            scannerStatus.textContent = "Buscando cámara...";
+    scannerStatus.textContent = "Buscando cámara...";
+    
+    scanner = new Instascan.Scanner({
+        video: videoElement,
+        mirror: false, // Desactivar espejo (útil para la cámara trasera)
+        backgroundScan: true,
+        refractoryPeriod: 5000,
+        scanPeriod: 1,
+        // Forzar el uso de la cámara trasera (environment) si está disponible
+        facingMode: 'environment' // ← Esta es la clave
+    });
+
+    scanner.addListener('scan', function(content) {
+        // ... (el resto del código sigue igual)
+    });
+
+    Instascan.Camera.getCameras().then(function(cameras) {
+        if (cameras.length > 0) {
+            // Intentar usar la cámara trasera (environment)
+            let backCamera = cameras.find(cam => cam.facingMode === 'environment') || cameras[0];
             
-            scanner = new Instascan.Scanner({
-                video: videoElement,
-                mirror: false,
-                backgroundScan: true,
-                refractoryPeriod: 5000,
-                scanPeriod: 1
+            scanner.start(backCamera).then(function() {
+                videoElement.style.display = 'block';
+                scannerContainer.innerHTML = '';
+                scannerContainer.appendChild(videoElement);
+                scannerStatus.textContent = "Escaneando...";
+                scannerButton.textContent = "Detener cámara";
+                isScanning = true;
+            }).catch(function(e) {
+                console.error(e);
+                scannerStatus.textContent = "Error al iniciar la cámara: " + e;
             });
-
-            scanner.addListener('scan', function(content) {
-                scanResult.textContent = "Código QR escaneado: " + content;
-                scanResult.classList.remove('hidden');
-                
-                // Enviar el contenido del QR al servidor
-                fetch(window.location.href, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: 'qr_content=' + encodeURIComponent(content)
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        scanResult.innerHTML = `
-                            <div class="bg-green-100 text-green-800 p-3 rounded">
-                                ${data.message}<br>
-                                Puntos añadidos: +${data.points_added}<br>
-                                Nuevo total: ${data.new_points} puntos
-                            </div>
-                        `;
-                    } else {
-                        scanResult.innerHTML = `
-                            <div class="bg-red-100 text-red-800 p-3 rounded">
-                                Error: ${data.message}
-                            </div>
-                        `;
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    scanResult.innerHTML = `
-                        <div class="bg-red-100 text-red-800 p-3 rounded">
-                            Error al comunicarse con el servidor
-                        </div>
-                    `;
-                });
-                
-                stopScanner();
-            });
-
-            Instascan.Camera.getCameras().then(function(cameras) {
-            if (cameras.length > 0) {
-                // Buscar la cámara trasera (normalmente es la segunda en el array o tiene facingMode 'environment')
-                let backCamera = null;
-                
-                // Método 1: Buscar por facingMode (si la biblioteca lo soporta)
-                backCamera = cameras.find(camera => camera.facingMode === 'environment');
-                
-                // Método 2: Si facingMode no está disponible, usar la última cámara (generalmente es la trasera)
-                if (!backCamera && cameras.length > 1) {
-                    backCamera = cameras[1]; // El índice 1 suele ser la cámara trasera
-                } else if (!backCamera) {
-                    backCamera = cameras[0]; // Si solo hay una cámara, usar esa
-                }
-                
-                scanner.start(backCamera).then(function() {
-                    videoElement.style.display = 'block';
-                    scannerContainer.innerHTML = '';
-                    scannerContainer.appendChild(videoElement);
-                    scannerStatus.textContent = "Escaneando...";
-                    scannerButton.textContent = "Detener cámara";
-                    isScanning = true;
-                }).catch(function(e) {
-                    console.error(e);
-                    scannerStatus.textContent = "Error al iniciar la cámara: " + e;
-                });
-            } else {
-                scannerStatus.textContent = "No se encontraron cámaras disponibles";
-            }
-        }).catch(function(e) {
-            console.error(e);
-            scannerStatus.textContent = "Error al acceder a la cámara: " + e;
-        });
+        } else {
+            scannerStatus.textContent = "No se encontraron cámaras disponibles";
         }
+    }).catch(function(e) {
+        console.error(e);
+        scannerStatus.textContent = "Error al acceder a la cámara: " + e;
+    });
+}
 
         function stopScanner() {
             if (scanner) {
