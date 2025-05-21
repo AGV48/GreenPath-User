@@ -62,7 +62,7 @@
     <title><?php echo $title; ?></title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="shortcut icon" href="media/logo.png">
-    <script src="https://cdn.jsdelivr.net/npm/instascan@1.0.0/dist/instascan.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/instascan/1.0.0/instascan.min.js"></script>
 </head>
 <body class="min-h-screen bg-gray-50">
     <header class="bg-green-600 text-white p-4 shadow-md">
@@ -207,14 +207,27 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function loadInstascan() {
-        return new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/instascan@1.0.0/dist/instascan.min.js';
-            script.onload = resolve;
-            script.onerror = () => reject(new Error("No se pudo cargar Instascan"));
-            document.head.appendChild(script);
-        });
+    // Verificar si ya está cargado
+    if (typeof Instascan !== 'undefined') {
+        return;
     }
+    
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/instascan/1.0.0/instascan.min.js';
+        script.integrity = 'sha512-ZodYyMv0JtlUHQ3QeQ4y0VqY3QdQlCzDqO2Uj5X9CQY5YQL5zQ5ZQ5ZQ5ZQ5ZQ5ZQ5ZQ5ZQ5ZQ5ZQ5ZQ5ZQ5ZQ==';
+        script.crossOrigin = 'anonymous';
+        script.onload = () => {
+            if (typeof Instascan === 'undefined') {
+                reject(new Error("Instascan no se cargó correctamente"));
+            } else {
+                resolve();
+            }
+        };
+        script.onerror = () => reject(new Error("Error al cargar Instascan"));
+        document.head.appendChild(script);
+    });
+}
 
     function handleScan(content) {
         scanResult.classList.remove('hidden');
