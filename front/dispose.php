@@ -194,25 +194,38 @@
             });
 
             Instascan.Camera.getCameras().then(function(cameras) {
-                if (cameras.length > 0) {
-                    scanner.start(cameras[0]).then(function() {
-                        videoElement.style.display = 'block';
-                        scannerContainer.innerHTML = '';
-                        scannerContainer.appendChild(videoElement);
-                        scannerStatus.textContent = "Escaneando...";
-                        scannerButton.textContent = "Detener cámara";
-                        isScanning = true;
-                    }).catch(function(e) {
-                        console.error(e);
-                        scannerStatus.textContent = "Error al iniciar la cámara: " + e;
-                    });
-                } else {
-                    scannerStatus.textContent = "No se encontraron cámaras disponibles";
+            if (cameras.length > 0) {
+                // Buscar la cámara trasera (normalmente es la segunda en el array o tiene facingMode 'environment')
+                let backCamera = null;
+                
+                // Método 1: Buscar por facingMode (si la biblioteca lo soporta)
+                backCamera = cameras.find(camera => camera.facingMode === 'environment');
+                
+                // Método 2: Si facingMode no está disponible, usar la última cámara (generalmente es la trasera)
+                if (!backCamera && cameras.length > 1) {
+                    backCamera = cameras[1]; // El índice 1 suele ser la cámara trasera
+                } else if (!backCamera) {
+                    backCamera = cameras[0]; // Si solo hay una cámara, usar esa
                 }
-            }).catch(function(e) {
-                console.error(e);
-                scannerStatus.textContent = "Error al acceder a la cámara: " + e;
-            });
+                
+                scanner.start(backCamera).then(function() {
+                    videoElement.style.display = 'block';
+                    scannerContainer.innerHTML = '';
+                    scannerContainer.appendChild(videoElement);
+                    scannerStatus.textContent = "Escaneando...";
+                    scannerButton.textContent = "Detener cámara";
+                    isScanning = true;
+                }).catch(function(e) {
+                    console.error(e);
+                    scannerStatus.textContent = "Error al iniciar la cámara: " + e;
+                });
+            } else {
+                scannerStatus.textContent = "No se encontraron cámaras disponibles";
+            }
+        }).catch(function(e) {
+            console.error(e);
+            scannerStatus.textContent = "Error al acceder a la cámara: " + e;
+        });
         }
 
         function stopScanner() {
