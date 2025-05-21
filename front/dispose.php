@@ -1,3 +1,4 @@
+
 <?php
     // Iniciar sesión y verificar autenticación
     session_start();
@@ -12,7 +13,7 @@
     
     // Procesar el escaneo si se recibió un código QR
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['qr_content'])) {
-        $qr_content = trim($_POST['qr_content']);
+        $qr_content = $_POST['qr_content'];
         $user_email = $_SESSION['user_email'];
         
         try {
@@ -62,7 +63,7 @@
     <title><?php echo $title; ?></title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="shortcut icon" href="media/logo.png">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/instascan/1.0.0/instascan.min.js"></script>
+    <script src="https://rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
 </head>
 <body class="min-h-screen bg-gray-50">
     <header class="bg-green-600 text-white p-4 shadow-md">
@@ -122,140 +123,111 @@
     </main>
 
     <script>
-document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function() {
     const scannerButton = document.getElementById('start-scanner');
     const videoElement = document.getElementById('qr-scanner');
+    const scannerContainer = document.getElementById('scanner-container');
     const scannerStatus = document.getElementById('scanner-status');
     const scanResult = document.getElementById('scan-result');
     
     let isScanning = false;
-    let scanner = null;
-    let activeCamera = null;
+    let stream = null; // Guardar la referencia al stream
 
-    scannerButton.addEventListener('click', toggleScanner);
-
-    function toggleScanner() {
+    scannerButton.addEventListener('click', function() {
         if (!isScanning) {
             startScanner();
         } else {
             stopScanner();
         }
-    }
+    });
 
-    async function startScanner() {
-        try {
-            scannerStatus.textContent = "Buscando cámaras...";
-            scannerButton.disabled = true;
-            
-            // Cargar Instascan dinámicamente si no está disponible
-            if (typeof Instascan === 'undefined') {
-                await loadInstascan();
+    function startScanner() {
+    scannerStatus.textContent = "Buscando cámara...";
+    
+    Instascan.Camera.getCameras()
+        .then(function(cameras) {
+            if (cameras.length > 0) {
+                // Buscar la cámara trasera por nombre o posición
+                let backCamera = cameras.find(camera => 
+                    camera.name.toLowerCase().includes('back') || 
+                    camera.facingMode === 'environment'
+                );
+
+                // Si no se encuentra, usar la última cámara (suele ser la trasera)
+                if (!backCamera && cameras.length > 1) {
+                    backCamera = cameras[cameras.length - 1];
+                } else if (!backCamera) {
+                    backCamera = cameras[0]; // Fallback a la única cámara disponible
+                }
+
+                // Iniciar scanner con la cámara seleccionada
+                scanner = new Instascan.Scanner({
+                    video: videoElement,
+                    mirror: false, // Desactivar espejo para la trasera
+                    scanPeriod: 1
+                });
+
+                scanner.start(backCamera)
+                    .then(() => {
+                        videoElement.style.display = 'block';
+                        scannerContainer.innerHTML = '';
+                        scannerContainer.appendChild(videoElement);
+                        scannerStatus.textContent = "Escaneando...";
+                        scannerButton.textContent = "Detener cámara";
+                        isScanning = true;
+                    })
+                    .catch(error => {
+                        console.error("Error al iniciar cámara:", error);
+                        scannerStatus.textContent = "Error al iniciar la cámara trasera.";
+                    });
+            } else {
+                scannerStatus.textContent = "No se encontraron cámaras.";
             }
-
-            const cameras = await Instascan.Camera.getCameras();
-            
-            if (cameras.length === 0) {
-                throw new Error("No se encontraron cámaras disponibles");
-            }
-
-            // Seleccionar cámara trasera o la primera disponible (CORRECCIÓN APLICADA AQUÍ)
-            activeCamera = cameras.find(c => c.name.includes('back')) || 
-                         cameras.find(c => c.facingMode === 'environment') || 
-                         cameras[0];
-
-            scanner = new Instascan.Scanner({
-                video: videoElement,
-                mirror: false,
-                scanPeriod: 5,
-                backgroundScan: false
-            });
-
-            scanner.addListener('scan', handleScan);
-
-            await scanner.start(activeCamera);
-            
-            videoElement.style.display = 'block';
-            scannerStatus.textContent = "Escaneando...";
-            scannerButton.textContent = "Detener cámara";
-            scannerButton.disabled = false;
-            isScanning = true;
-            
-        } catch (error) {
-            console.error("Error al iniciar escáner:", error);
-            scannerStatus.textContent = `Error: ${error.message}`;
-            scannerButton.textContent = "Activar cámara";
-            scannerButton.disabled = false;
-            isScanning = false;
-            
-            // Mostrar mensaje específico para errores de permisos
-            if (error.name === 'NotAllowedError') {
-                scannerStatus.textContent = "Permiso de cámara denegado. Por favor habilita los permisos.";
-            }
-        }
-    }
-
+        })
+        .catch(error => {
+            console.error("Error al listar cámaras:", error);
+            scannerStatus.textContent = "Error al acceder a las cámaras.";
+        });
+}
     function stopScanner() {
         if (scanner) {
             scanner.stop();
-            scanner.removeListener('scan', handleScan);
+            videoElement.style.display = 'none';
+            scannerButton.textContent = "Activar cámara";
+            scannerStatus.textContent = "Cámara detenida.";
+            isScanning = false;
         }
-        
-        videoElement.style.display = 'none';
-        scannerStatus.textContent = "Cámara detenida";
-        scannerButton.textContent = "Activar cámara";
-        isScanning = false;
     }
 
-    async function loadInstascan() {
-    // Verificar si ya está cargado
-    if (typeof Instascan !== 'undefined') {
-        return;
-    }
-    
-    return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/instascan/1.0.0/instascan.min.js';
-        script.integrity = 'sha512-ZodYyMv0JtlUHQ3QeQ4y0VqY3QdQlCzDqO2Uj5X9CQY5YQL5zQ5ZQ5ZQ5ZQ5ZQ5ZQ5ZQ5ZQ5ZQ5ZQ5ZQ5ZQ5ZQ==';
-        script.crossOrigin = 'anonymous';
-        script.onload = () => {
-            if (typeof Instascan === 'undefined') {
-                reject(new Error("Instascan no se cargó correctamente"));
-            } else {
-                resolve();
-            }
-        };
-        script.onerror = () => reject(new Error("Error al cargar Instascan"));
-        document.head.appendChild(script);
-    });
-}
-
-    function handleScan(content) {
+    // Escuchar el evento de escaneo
+    scanner.addListener('scan', function(content) {
         scanResult.classList.remove('hidden');
-        scanResult.textContent = `Escaneado: ${content}`;
+        scanResult.textContent = `Código QR escaneado: ${content}`;
         
+        // Enviar el contenido del QR al servidor
         fetch('dispose.php', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Type': 'application/x-www-form-urlencoded'
             },
             body: `qr_content=${encodeURIComponent(content)}`
         })
-        .then(handleResponse)
-        .catch(handleError);
-    }
-
-    function handleResponse(response) {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    }
-
-    function handleError(error) {
-        console.error("Error:", error);
-        scanResult.textContent = `Error: ${error.message}`;
-        scanResult.className = 'mb-4 p-3 bg-red-100 text-red-800 rounded';
-    }
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                scanResult.textContent = `¡${data.points_added} puntos añadidos! Total: ${data.new_points} puntos.`;
+                scanResult.classList.add('bg-green-100', 'text-green-800');
+            } else {
+                scanResult.textContent = data.message;
+                scanResult.classList.add('bg-red-100', 'text-red-800');
+            }
+        })
+        .catch(error => {
+            console.error("Error al procesar el escaneo:", error);
+            scanResult.textContent = "Error al procesar el escaneo.";
+            scanResult.classList.add('bg-red-100', 'text-red-800');
+        });
+    });
 });
 </script>
 </body>
