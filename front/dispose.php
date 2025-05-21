@@ -122,7 +122,7 @@
     </main>
 
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function() {
     const scannerButton = document.getElementById('start-scanner');
     const videoElement = document.getElementById('qr-scanner');
     const scannerStatus = document.getElementById('scanner-status');
@@ -158,10 +158,10 @@
                 throw new Error("No se encontraron cámaras disponibles");
             }
 
-            // Seleccionar cámara trasera o la primera disponible
-            activeCamera = cameras.find(c => c.name.includes('back') || 
-                           cameras.find(c => c.facingMode === 'environment') || 
-                           cameras[0];
+            // Seleccionar cámara trasera o la primera disponible (CORRECCIÓN APLICADA AQUÍ)
+            activeCamera = cameras.find(c => c.name.includes('back')) || 
+                         cameras.find(c => c.facingMode === 'environment') || 
+                         cameras[0];
 
             scanner = new Instascan.Scanner({
                 video: videoElement,
