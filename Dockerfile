@@ -5,7 +5,10 @@ FROM php:8.2-apache
 COPY . /var/www/html/
 
 # Habilitar extensiones necesarias de PHP (como mysqli)
-RUN docker-php-ext-install mysqli
+RUN apt-get update && \
+    apt-get install -y libpq-dev && \
+    docker-php-ext-install pdo pdo_pgsql && \
+    a2enmod rewrite
 
 # Dar permisos a Apache
 RUN chown -R www-data:www-data /var/www/html

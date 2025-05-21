@@ -1,10 +1,10 @@
 <?php
-// Habilita toda la visualización de errores
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// Verificar si el driver está disponible
+if (!in_array('pgsql', PDO::getAvailableDrivers())) {
+    die('Error: El driver PDO para PostgreSQL no está instalado. Contacta al administrador.');
+}
 
-// Configuración para Neon.tech (usa variables de entorno en producción)
+// Configuración (usa variables de entorno en producción)
 $host = 'ep-round-tree-a551uewg-pooler.us-east-2.aws.neon.tech';
 $port = '5432';
 $dbname = 'Greenpath';
@@ -12,26 +12,23 @@ $user = 'AGV';
 $password = 'TtfvlRibHh93';
 
 try {
-    // Cadena de conexión con opciones SSL
     $dsn = "pgsql:host=$host;port=$port;dbname=$dbname;sslmode=require";
-    $options = [
+    $conexion = new PDO($dsn, $user, $password, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_TIMEOUT => 5, // Timeout de 5 segundos
-    ];
+        PDO::ATTR_TIMEOUT => 5
+    ]);
     
-    $conexion = new PDO($dsn, $user, $password, $options);
-    
-    // Si llegamos aquí, la conexión fue exitosa
-    echo "¡Conexión exitosa a Neon.tech!";
-    
-    // Prueba una consulta simple
-    $stmt = $conexion->query("SELECT 1 as test");
-    $result = $stmt->fetch();
-    print_r($result);
+    // Configuración adicional
+    $conexion->exec("SET NAMES 'UTF8'");
     
 } catch (PDOException $e) {
-    // Muestra el error completo
-    die("Error de conexión: " . $e->getMessage() . 
-        " (Código: " . $e->getCode() . ")");
+    // Mensaje más informativo
+    $errorMsg = "Error de conexión a la base de datos: \n";
+    $errorMsg .= "Mensaje: " . $e->getMessage() . "\n";
+    $errorMsg .= "Código: " . $e->getCode() . "\n";
+    $errorMsg .= "Driver disponible: " . (in_array('pgsql', PDO::getAvailableDrivers()) ? 'Sí' : 'No');
+    
+    error_log($errorMsg);
+    die("Lo sentimos, estamos experimentando problemas técnicos. Por favor intente más tarde.");
 }
 ?>
