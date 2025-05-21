@@ -125,106 +125,123 @@
     document.addEventListener('DOMContentLoaded', function() {
     const scannerButton = document.getElementById('start-scanner');
     const videoElement = document.getElementById('qr-scanner');
-    const scannerContainer = document.getElementById('scanner-container');
     const scannerStatus = document.getElementById('scanner-status');
     const scanResult = document.getElementById('scan-result');
     
     let isScanning = false;
-    let scanner = null; // Definir la variable scanner aquí
-    let stream = null;
+    let scanner = null;
+    let activeCamera = null;
 
-    scannerButton.addEventListener('click', function() {
+    scannerButton.addEventListener('click', toggleScanner);
+
+    function toggleScanner() {
         if (!isScanning) {
             startScanner();
         } else {
             stopScanner();
         }
-    });
+    }
 
-    function startScanner() {
-        scannerStatus.textContent = "Buscando cámara...";
-        
-        Instascan.Camera.getCameras()
-            .then(function(cameras) {
-                if (cameras.length > 0) {
-                    let backCamera = cameras.find(camera => 
-                        camera.name.toLowerCase().includes('back') || 
-                        camera.facingMode === 'environment'
-                    );
+    async function startScanner() {
+        try {
+            scannerStatus.textContent = "Buscando cámaras...";
+            scannerButton.disabled = true;
+            
+            // Cargar Instascan dinámicamente si no está disponible
+            if (typeof Instascan === 'undefined') {
+                await loadInstascan();
+            }
 
-                    if (!backCamera && cameras.length > 1) {
-                        backCamera = cameras[cameras.length - 1];
-                    } else if (!backCamera) {
-                        backCamera = cameras[0];
-                    }
+            const cameras = await Instascan.Camera.getCameras();
+            
+            if (cameras.length === 0) {
+                throw new Error("No se encontraron cámaras disponibles");
+            }
 
-                    scanner = new Instascan.Scanner({
-                        video: videoElement,
-                        mirror: false,
-                        scanPeriod: 1
-                    });
+            // Seleccionar cámara trasera o la primera disponible
+            activeCamera = cameras.find(c => c.name.includes('back') || 
+                           cameras.find(c => c.facingMode === 'environment') || 
+                           cameras[0];
 
-                    // Mover el listener aquí dentro
-                    scanner.addListener('scan', function(content) {
-                        scanResult.classList.remove('hidden');
-                        scanResult.textContent = `Código QR escaneado: ${content}`;
-                        
-                        // Enviar el contenido del QR al servidor
-                        fetch('dispose.php', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded',
-                            },
-                            body: `qr_content=${encodeURIComponent(content)}`
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                scanResult.textContent = `¡${data.points_added} puntos añadidos! Total: ${data.new_points} puntos.`;
-                                scanResult.className = 'mb-4 p-3 bg-green-100 text-green-800 rounded';
-                            } else {
-                                scanResult.textContent = data.message;
-                                scanResult.className = 'mb-4 p-3 bg-red-100 text-red-800 rounded';
-                            }
-                        })
-                        .catch(error => {
-                            console.error("Error al procesar el escaneo:", error);
-                            scanResult.textContent = "Error al procesar el escaneo.";
-                            scanResult.className = 'mb-4 p-3 bg-red-100 text-red-800 rounded';
-                        });
-                    });
-
-                    scanner.start(backCamera)
-                        .then(() => {
-                            videoElement.style.display = 'block';
-                            scannerContainer.innerHTML = '';
-                            scannerContainer.appendChild(videoElement);
-                            scannerStatus.textContent = "Escaneando...";
-                            scannerButton.textContent = "Detener cámara";
-                            isScanning = true;
-                        })
-                        .catch(error => {
-                            console.error("Error al iniciar cámara:", error);
-                            scannerStatus.textContent = "Error al iniciar la cámara trasera.";
-                        });
-                } else {
-                    scannerStatus.textContent = "No se encontraron cámaras.";
-                }
-            })
-            .catch(error => {
-                console.error("Error al listar cámaras:", error);
-                scannerStatus.textContent = "Error al acceder a las cámaras.";
+            scanner = new Instascan.Scanner({
+                video: videoElement,
+                mirror: false,
+                scanPeriod: 5,
+                backgroundScan: false
             });
+
+            scanner.addListener('scan', handleScan);
+
+            await scanner.start(activeCamera);
+            
+            videoElement.style.display = 'block';
+            scannerStatus.textContent = "Escaneando...";
+            scannerButton.textContent = "Detener cámara";
+            scannerButton.disabled = false;
+            isScanning = true;
+            
+        } catch (error) {
+            console.error("Error al iniciar escáner:", error);
+            scannerStatus.textContent = `Error: ${error.message}`;
+            scannerButton.textContent = "Activar cámara";
+            scannerButton.disabled = false;
+            isScanning = false;
+            
+            // Mostrar mensaje específico para errores de permisos
+            if (error.name === 'NotAllowedError') {
+                scannerStatus.textContent = "Permiso de cámara denegado. Por favor habilita los permisos.";
+            }
+        }
     }
 
     function stopScanner() {
         if (scanner) {
             scanner.stop();
-            videoElement.style.display = 'none';
-            scannerButton.textContent = "Activar cámara";
-            scannerStatus.textContent = "Cámara detenida.";
-            isScanning = false;
+            scanner.removeListener('scan', handleScan);
         }
+        
+        videoElement.style.display = 'none';
+        scannerStatus.textContent = "Cámara detenida";
+        scannerButton.textContent = "Activar cámara";
+        isScanning = false;
+    }
+
+    async function loadInstascan() {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/instascan@1.0.0/dist/instascan.min.js';
+            script.onload = resolve;
+            script.onerror = () => reject(new Error("No se pudo cargar Instascan"));
+            document.head.appendChild(script);
+        });
+    }
+
+    function handleScan(content) {
+        scanResult.classList.remove('hidden');
+        scanResult.textContent = `Escaneado: ${content}`;
+        
+        fetch('dispose.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `qr_content=${encodeURIComponent(content)}`
+        })
+        .then(handleResponse)
+        .catch(handleError);
+    }
+
+    function handleResponse(response) {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    }
+
+    function handleError(error) {
+        console.error("Error:", error);
+        scanResult.textContent = `Error: ${error.message}`;
+        scanResult.className = 'mb-4 p-3 bg-red-100 text-red-800 rounded';
     }
 });
 </script>
