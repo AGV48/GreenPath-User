@@ -22,12 +22,12 @@
         $user_data = $stmt->fetch(PDO::FETCH_ASSOC);
         
         // Obtener los puntos (o 0 si no hay datos)
-        $puntos = $user_data ? number_format($user_data['puntos'], 0, ',', '.') : '0';
+        $user_points = $user_data ? number_format($user_data['puntos'], 0, ',', '.') : '0';
         $nombre_usuario = $user_data['nombre'] ?? 'Usuario';
     } catch (PDOException $e) {
         // Manejo de errores
         error_log("Error al obtener datos del usuario: " . $e->getMessage());
-        $puntos = '0';
+        $user_points = '0';
         $nombre_usuario = 'Usuario';
     }
 
@@ -88,7 +88,7 @@
                 
                 <div class="points-display">
                     <i class="fas fa-coins mr-2"></i>
-                    <span class="font-bold"><?php echo $puntos; ?> pts</span>
+                    <span class="font-bold"><?php echo $user_points; ?> pts</span>
                 </div>
             </nav>
         </div>
@@ -100,7 +100,7 @@
             <div class="flex justify-between items-center">
                 <h3 class="text-lg font-semibold text-gray-800">Tus puntos</h3>
                 <span class="bg-green-100 text-green-800 px-4 py-2 rounded-full font-bold">
-                    <?php echo $puntos; ?> puntos
+                    <?php echo $user_points; ?> puntos
                 </span>
             </div>
         </div>
