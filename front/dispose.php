@@ -143,54 +143,52 @@
         function startScanner() {
     scannerStatus.textContent = "Buscando cámara...";
     
-    scanner = new Instascan.Scanner({
-        video: videoElement,
-        mirror: false, // Desactivar espejo (útil para la cámara trasera)
-        backgroundScan: true,
-        refractoryPeriod: 5000,
-        scanPeriod: 1,
-        // Forzar el uso de la cámara trasera (environment) si está disponible
-        facingMode: 'environment' // ← Esta es la clave
-    });
-
-    scanner.addListener('scan', function(content) {
-        // ... (el resto del código sigue igual)
-    });
-
-    Instascan.Camera.getCameras().then(function(cameras) {
-        if (cameras.length > 0) {
-            // Intentar usar la cámara trasera (environment)
-            let backCamera = cameras.find(cam => cam.facingMode === 'environment') || cameras[0];
-            
-            scanner.start(backCamera).then(function() {
-                videoElement.style.display = 'block';
-                scannerContainer.innerHTML = '';
-                scannerContainer.appendChild(videoElement);
-                scannerStatus.textContent = "Escaneando...";
-                scannerButton.textContent = "Detener cámara";
-                isScanning = true;
-            }).catch(function(e) {
-                console.error(e);
-                scannerStatus.textContent = "Error al iniciar la cámara: " + e;
-            });
-        } else {
-            scannerStatus.textContent = "No se encontraron cámaras disponibles";
+    // Configurar getUserMedia para usar la cámara trasera
+    const constraints = {
+        video: {
+            facingMode: 'environment' // ← Obliga a usar la cámara trasera
         }
-    }).catch(function(e) {
-        console.error(e);
-        scannerStatus.textContent = "Error al acceder a la cámara: " + e;
-    });
+    };
+
+    navigator.mediaDevices.getUserMedia(constraints)
+        .then(function(stream) {
+            videoElement.srcObject = stream;
+            videoElement.style.display = 'block';
+            scannerContainer.innerHTML = '';
+            scannerContainer.appendChild(videoElement);
+            scannerStatus.textContent = "Escaneando...";
+            scannerButton.textContent = "Detener cámara";
+            isScanning = true;
+
+            // Opcional: Usar una librería alternativa para escanear QR
+            // Ejemplo con jsQR (deberías incluirla en tu proyecto)
+            // const canvas = document.createElement('canvas');
+            // const context = canvas.getContext('2d');
+            // setInterval(() => {
+            //     context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+            //     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+            //     const code = jsQR(imageData.data, imageData.width, imageData.height);
+            //     if (code) {
+            //         scanResult.textContent = "Código QR escaneado: " + code.data;
+            //         stopScanner();
+            //     }
+            // }, 500);
+        })
+        .catch(function(e) {
+            console.error(e);
+            scannerStatus.textContent = "Error al acceder a la cámara: " + e.message;
+        });
 }
 
-        function stopScanner() {
-            if (scanner) {
-                scanner.stop();
-            }
-            videoElement.style.display = 'none';
-            scannerContainer.innerHTML = '<p id="scanner-status" class="text-gray-500">Cámara detenida</p>';
-            scannerButton.textContent = "Activar cámara";
-            isScanning = false;
-        }
+function stopScanner() {
+    if (videoElement.srcObject) {
+        videoElement.srcObject.getTracks().forEach(track => track.stop());
+    }
+    videoElement.style.display = 'none';
+    scannerContainer.innerHTML = '<p id="scanner-status" class="text-gray-500">Cámara detenida</p>';
+    scannerButton.textContent = "Activar cámara";
+    isScanning = false;
+}
     });
 </script>
 </body>
