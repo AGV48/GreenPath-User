@@ -49,7 +49,6 @@
 <body class="min-h-screen bg-gray-50">
     <header class="header-container text-white p-4">
         <div class="container mx-auto flex justify-between items-center">
-            <!-- Logo y marca -->
             <a href="dashboard.php" class="flex items-center gap-4 hover:opacity-90 transition-opacity">
                 <img src="media/logo.png" width="50" height="50" alt="Logo de GREENPATH" class="rounded-lg">
                 <div>
@@ -58,7 +57,6 @@
                 </div>
             </a>
 
-            <!-- Menú de navegación -->
             <nav class="flex items-center gap-6">
                 <a href="dashboard.php" class="nav-link flex items-center">
                     <i class="fas fa-home mr-2"></i>
