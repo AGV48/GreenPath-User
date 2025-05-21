@@ -1,4 +1,3 @@
-
 <?php
     // Iniciar sesión y verificar autenticación
     session_start();
