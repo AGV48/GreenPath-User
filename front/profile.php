@@ -39,56 +39,54 @@
     <title><?php echo $title; ?></title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="shortcut icon" href="media/logo.png">
-    <!-- Iconos de Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        
+    </style>
 </head>
 <body class="min-h-screen bg-gray-50">
-    <header class="bg-gradient-to-r from-green-600 to-green-700 text-white p-4 shadow-lg sticky top-0 z-50">
+    <header class="header-container text-white p-4">
         <div class="container mx-auto flex justify-between items-center">
-            <!-- Logo y marca -->
             <a href="dashboard.php" class="flex items-center gap-4 hover:opacity-90 transition-opacity">
-                <img src="media/logo.png" width="50" height="50" alt="Logo de GREENPATH" class="rounded-lg shadow-sm">
+                <img src="media/logo.png" width="50" height="50" alt="Logo de GREENPATH" class="rounded-lg">
                 <div>
                     <h1 class="text-2xl font-bold">GREENPATH</h1>
                     <h2 class="text-xl">VISIONS</h2>
                 </div>
             </a>
 
-            <!-- Menú de navegación -->
-            <nav class="flex items-center space-x-6">
-                <div class="flex items-center space-x-4">
-                    <a href="dashboard.php" class="flex items-center px-3 py-2 rounded-lg hover:bg-green-500 transition-colors">
-                        <i class="fas fa-home mr-2"></i>
-                        <span>Inicio</span>
-                    </a>
-                    
-                    <div class="relative group">
-                        <button class="flex items-center px-3 py-2 rounded-lg hover:bg-green-500 transition-colors">
-                            <i class="fas fa-user mr-2"></i>
-                            <span><?php echo htmlspecialchars($user_name); ?></span>
-                            <i class="fas fa-chevron-down ml-2 text-xs"></i>
-                        </button>
-                        <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden group-hover:block">
-                            <a href="profile.php" class="block px-4 py-2 text-gray-800 hover:bg-green-100 transition-colors">
-                                <i class="fas fa-user-circle mr-2"></i> Mi perfil
-                            </a>
-                            <a href="profile_edit.php" class="block px-4 py-2 text-gray-800 hover:bg-green-100 transition-colors">
-                                <i class="fas fa-cog mr-2"></i> Configuración
-                            </a>
-                            <a href="change_password.php" class="block px-4 py-2 text-gray-800 hover:bg-green-100 transition-colors">
-                                <i class="fas fa-key mr-2"></i> Cambiar contraseña
-                            </a>
-                            <div class="border-t border-gray-200 my-1"></div>
-                            <a href="../index.php" class="block px-4 py-2 text-red-600 hover:bg-red-50 transition-colors">
-                                <i class="fas fa-sign-out-alt mr-2"></i> Cerrar sesión
-                            </a>
-                        </div>
+            <nav class="flex items-center gap-6">
+                <a href="dashboard.php" class="nav-link flex items-center">
+                    <i class="fas fa-home mr-2"></i>
+                    <span>Inicio</span>
+                </a>
+                
+                <div class="user-dropdown">
+                    <button class="nav-link flex items-center">
+                        <i class="fas fa-user-circle mr-2"></i>
+                        <span><?php echo htmlspecialchars($user_name); ?></span>
+                        <i class="fas fa-chevron-down ml-2 text-xs"></i>
+                    </button>
+                    <div class="user-dropdown-content">
+                        <a href="profile.php">
+                            <i class="fas fa-user"></i> Mi perfil
+                        </a>
+                        <a href="profile_edit.php">
+                            <i class="fas fa-cog"></i> Configuración
+                        </a>
+                        <a href="change_password.php">
+                            <i class="fas fa-key"></i> Cambiar contraseña
+                        </a>
+                        <div style="border-top: 1px solid #e5e7eb; margin: 0.25rem 0;"></div>
+                        <a href="../index.php" style="color: #dc2626;">
+                            <i class="fas fa-sign-out-alt"></i> Cerrar sesión
+                        </a>
                     </div>
-                    
-                    <div class="flex items-center px-3 py-2 rounded-lg bg-green-500">
-                        <i class="fas fa-coins mr-2"></i>
-                        <span class="font-bold"><?php echo $user_points; ?> pts</span>
-                    </div>
+                </div>
+                
+                <div class="points-display">
+                    <i class="fas fa-coins mr-2"></i>
+                    <span class="font-bold"><?php echo $user_points; ?> pts</span>
                 </div>
             </nav>
         </div>

@@ -10,10 +10,24 @@
 
     $title = "Desechar residuos - GREENPATH VISIONS";
     
+    try {
+        $query = "SELECT puntos FROM usuarios WHERE correo = :email";
+        $stmt = $conexion->prepare($query);
+        $stmt->bindParam(':email', $user_email);
+        $stmt->execute();
+        $user_data = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        // Obtener los puntos (o 0 si no hay datos)
+        $user_points = $user_data ? number_format($user_data['puntos'], 0, ',', '.') : '0';
+    } catch (PDOException $e) {
+        // Manejo de errores
+        error_log("Error al obtener datos del usuario: " . $e->getMessage());
+        $user_points = '0';
+    }
+
     // Obtener datos de la sesión
     $user_name = $_SESSION['user_name'];
     $user_email = $_SESSION['user_email'];
-    $user_points = $_SESSION['user_points'] ?? 0;
 
     // Procesar el escaneo si se recibió un código QR
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['qr_content'])) {
