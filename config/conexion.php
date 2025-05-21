@@ -1,23 +1,24 @@
 <?php
-// Configuración para Render (usa variables de entorno)
-$host = getenv('DB_HOST') ?: 'db'; // 'db' solo funciona en Docker
-$user = getenv('DB_USER') ?: 'root';
-$pass = getenv('DB_PASSWORD') ?: 'root';
-$db   = getenv('DB_NAME') ?: 'greenpath';
+// Configuración para Neon.tech PostgreSQL
+$host = getenv('DB_HOST') ?: 'ep-round-tree-a551uewg-pooler.us-east-2.aws.neon.tech';
+$port = getenv('DB_PORT') ?: '5432';
+$dbname = getenv('DB_NAME') ?: 'Greenpath';
+$user = getenv('DB_USER') ?: 'AGV';
+$password = getenv('DB_PASSWORD') ?: 'TtfvlRibHh93';
 
-// Intento de conexión con manejo de errores
 try {
-    $conexion = new mysqli($host, $user, $pass, $db);
+    // Cadena de conexión para PostgreSQL con Neon
+    $dsn = "pgsql:host=$host;port=$port;dbname=$dbname;sslmode=require";
+    $conexion = new PDO($dsn, $user, $password);
     
-    if ($conexion->connect_error) {
-        throw new Exception("Conexión fallida: " . $conexion->connect_error);
-    }
+    // Configurar el manejo de errores
+    $conexion->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $conexion->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
     
-    // Configurar el charset si es necesario
-    $conexion->set_charset("utf8mb4");
+    // Configurar el encoding
+    $conexion->exec("SET NAMES 'utf8mb4'");
     
-} catch (Exception $e) {
-    // Mensaje de error más amigable para producción
+} catch (PDOException $e) {
     error_log("Error de base de datos: " . $e->getMessage());
     die("Lo sentimos, estamos experimentando problemas técnicos. Por favor intente más tarde.");
 }
