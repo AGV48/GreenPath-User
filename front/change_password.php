@@ -115,7 +115,7 @@
                         text: decodedMessage,
                         confirmButtonColor: '#16a34a',
                     }).then(() => {
-                        window.location.href = "profile.php";
+                        window.location.href = "../index.php";
                     });
                 } else if (status === 'error') {
                     Swal.fire({
