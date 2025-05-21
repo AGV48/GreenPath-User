@@ -10,9 +10,9 @@
 
     $title = "Desechar residuos - GREENPATH VISIONS";
     
-    // Procesar el escaneo si se recibió un código QR
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['qr_content'])) {
-        $qr_content = $_POST['qr_content'];
+    // Procesar el escaneo si se recibió un código QR por GET
+    if (isset($_GET['qr_content'])) {
+        $qr_content = $_GET['qr_content'];
         $user_email = $_SESSION['user_email'];
         
         try {
@@ -33,25 +33,14 @@
             $update_stmt->bindParam(':email', $user_email);
             $update_stmt->execute();
             
-            // Devolver respuesta JSON
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'message' => '¡Puntos añadidos correctamente!',
-                'new_points' => $current_points + $points_to_add,
-                'points_added' => $points_to_add
-            ]);
-            exit();
-            
-        } catch (PDOException $e) {
-            error_log("Error al actualizar puntos: " . $e->getMessage());
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => false,
-                'message' => 'Error al procesar los puntos'
-            ]);
-            exit();
+            // Mostrar mensaje o redirigir
+            echo "<h2>¡Gracias por reciclar!</h2>";
+            echo "<p>Has ganado $points_to_add puntos.</p>";
+        } catch (Exception $e) {
+            echo "<p>Error al procesar el escaneo: " . $e->getMessage() . "</p>";
         }
+    } else {
+        echo "<p>No se detectó contenido del QR.</p>";
     }
 ?>
 <!DOCTYPE html>
