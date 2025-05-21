@@ -10,6 +10,10 @@
 
     $title = "Desechar residuos - GREENPATH VISIONS";
     
+    // Obtener datos de la sesión
+    $user_name = $_SESSION['user_name'];
+    $user_email = $_SESSION['user_email'];
+
     // Procesar el escaneo si se recibió un código QR
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['qr_content'])) {
         $qr_content = $_POST['qr_content'];
