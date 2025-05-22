@@ -14,20 +14,27 @@ if (empty($email) || empty($password)) {
 }
 
 try {
-    $query = "SELECT nombre, correo, puntos FROM usuarios WHERE correo = :email AND contrasena = :password";
+    // Obtener el hash almacenado para el usuario
+    $query = "SELECT nombre, correo, puntos, contrasena FROM usuarios WHERE correo = :email";
     $stmt = $conexion->prepare($query);
     $stmt->bindParam(':email', $email);
-    $stmt->bindParam(':password', $password);
     $stmt->execute();
     
     if ($stmt->rowCount() > 0) {
         $user_data = $stmt->fetch(PDO::FETCH_ASSOC);
-        $_SESSION['user_email'] = $user_data['correo'];
-        $_SESSION['user_name'] = $user_data['nombre'];
         
-        echo '<script>window.location = "../front/dashboard.php";</script>';
+        // Verificar la contraseña usando password_verify()
+        if (password_verify($password, $user_data['contrasena'])) {
+            $_SESSION['user_email'] = $user_data['correo'];
+            $_SESSION['user_name'] = $user_data['nombre'];
+            
+            echo '<script>window.location = "../front/dashboard.php";</script>';
+        } else {
+            $message = urlencode("Usuario o contraseña incorrectos");
+            header("Location: ../index.php?status=error&message=$message");
+        }
     } else {
-        $message = urlencode("Usuario o contraseñas incorrectos");
+        $message = urlencode("Usuario o contraseña incorrectos");
         header("Location: ../index.php?status=error&message=$message");
     }
 } catch (PDOException $e) {
