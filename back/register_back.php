@@ -6,7 +6,29 @@ $email = $_POST['email'];
 $password = $_POST['password'];
 $confirmPassword = $_POST['confirmPassword'];
 
-// ... (validaciones previas permanecen iguales) ...
+if (empty($name) || empty($email) || empty($password) || empty($confirmPassword)) {
+    $message = urlencode("Por favor, completa todos los campos");
+    header("Location: ../front/register.php?status=error&message=$message");
+    exit();
+}
+
+if ($password !== $confirmPassword) {
+    $message = urlencode("Las contraseñas no coinciden");
+    header("Location: ../front/register.php?status=error&message=$message");
+    exit();
+}
+
+if (strlen($password) < 8) {
+    $message = urlencode("La contraseña debe tener al menos 8 caracteres");
+    header("Location: ../front/register.php?status=error&message=$message");
+    exit();
+}
+
+if (!str_contains($email, "@gmail.com") && !str_contains($email, "@hotmail.com") && !str_contains($email, "@outlook.com")) {
+    $message = urlencode("Email inválido. Solo se permiten cuentas de Gmail, Hotmail u Outlook");
+    header("Location: ../front/register.php?status=error&message=$message");
+    exit();
+}
 
 try {
     // Verificar si el email existe
