@@ -523,3 +523,22 @@ body {
 .nav-link:hover {
     background-color: rgba(255, 255, 255, 0.1);
 }
+
+.scanner-overlay {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .scanner-overlay::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 2px solid #10B981;
+            border-radius: 8px;
+            pointer-events: none;
+            box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.5);
+        }
