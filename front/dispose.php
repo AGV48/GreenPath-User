@@ -31,10 +31,17 @@
 
     // Procesar el escaneo si se recibió un código QR
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['qr_content'])) {
-    $qr_content = $_POST['qr_content'];
-    $user_email = $_SESSION['user_email'];
-    
-    try {
+        $qr_content = $_POST['qr_content'];
+        $user_email = $_SESSION['user_email'];
+        
+        try {
+            // Obtener puntos actuales del usuario PRIMERO
+            $query = "SELECT puntos FROM usuarios WHERE correo = :email";
+            $stmt = $conexion->prepare($query);
+            $stmt->bindParam(':email', $user_email);
+            $stmt->execute();
+            $user_data = $stmt->fetch(PDO::FETCH_ASSOC);
+            $current_points = $user_data ? $user_data['puntos'] : 0;
         // Decodificar el contenido del QR
         $qr_data = json_decode($qr_content, true);
         
@@ -198,108 +205,147 @@
     </main>
 
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const scannerButton = document.getElementById('start-scanner');
-        const videoElement = document.getElementById('qr-scanner');
-        const scannerContainer = document.getElementById('scanner-container');
-        const scannerStatus = document.getElementById('scanner-status');
-        const scanResult = document.getElementById('scan-result');
-        
-        let isScanning = false;
-        let scanner = null; // Declarar scanner aquí
-        
-        scannerButton.addEventListener('click', function() {
-            if (!isScanning) {
-                startScanner();
-            } else {
-                stopScanner();
-            }
-        });
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM completamente cargado'); // Verifica que el DOM esté listo
+    
+    const scannerButton = document.getElementById('start-scanner');
+    const videoElement = document.getElementById('qr-scanner');
+    const scannerStatus = document.getElementById('scanner-status');
+    const scanResult = document.getElementById('scan-result');
+    const pointsDisplay = document.querySelector('.points-display span');
+    
+    console.log('Elementos del DOM obtenidos:', {
+        scannerButton, 
+        videoElement, 
+        scannerStatus, 
+        scanResult, 
+        pointsDisplay
+    });
 
-        function startScanner() {
-            scannerStatus.textContent = "Buscando cámara...";
-            
-            Instascan.Camera.getCameras().then(function(cameras) {
-                if (cameras.length > 0) {
-                    // Preferir cámara trasera
-                    let selectedCamera = cameras[0];
-                    if (cameras.length > 1) {
-                        selectedCamera = cameras.find(cam => cam.name.includes('back') || cam.name.includes('rear')) || cameras[1];
-                    }
-                    
-                    scanner = new Instascan.Scanner({
-                        video: videoElement,
-                        mirror: false,
-                        scanPeriod: 5 // Escanear cada 5 segundos para mejor rendimiento
-                    });
-                    
-                    scanner.start(selectedCamera).then(function() {
-                        videoElement.style.display = 'block';
-                        scannerStatus.textContent = "Escaneando código QR...";
-                        scannerButton.textContent = "Detener cámara";
-                        isScanning = true;
-                    }).catch(function(err) {
-                        console.error("Error al iniciar cámara:", err);
-                        scannerStatus.textContent = "Error al iniciar la cámara";
-                    });
-                } else {
-                    scannerStatus.textContent = "No se encontraron cámaras disponibles";
-                }
-            }).catch(function(err) {
-                console.error("Error al acceder a cámaras:", err);
-                scannerStatus.textContent = "Error al acceder a la cámara";
-            });
-        }
+    let isScanning = false;
+    let scanner = null;
 
-        function stopScanner() {
-            if (scanner) {
-                scanner.stop();
-                videoElement.style.display = 'none';
-                scannerButton.textContent = "Activar cámara";
-                scannerStatus.textContent = "Cámara detenida";
-                isScanning = false;
-            }
-        }
-
-        // Escuchar el evento de escaneo
-        if (scanner) {
-            scanner.addListener('scan', function(content) {
-                scanResult.classList.remove('hidden');
-                scanResult.textContent = "Procesando código QR...";
-                scanResult.className = "mb-4 p-3 bg-blue-100 text-blue-800 rounded";
-                
-                // Enviar el contenido del QR al servidor
-                fetch('dispose.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: 'qr_content=' + encodeURIComponent(content)
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        scanResult.textContent = data.message + " ¡+" + data.points_added + " puntos! Total: " + data.new_points + " puntos.";
-                        scanResult.className = "mb-4 p-3 bg-green-100 text-green-800 rounded";
-                        
-                        // Actualizar el contador de puntos en el header
-                        const pointsDisplay = document.querySelector('.points-display span');
-                        if (pointsDisplay) {
-                            pointsDisplay.textContent = data.new_points.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " pts";
-                        }
-                    } else {
-                        scanResult.textContent = "Error: " + data.message;
-                        scanResult.className = "mb-4 p-3 bg-red-100 text-red-800 rounded";
-                    }
-                })
-                .catch(error => {
-                    console.error("Error:", error);
-                    scanResult.textContent = "Error al conectar con el servidor";
-                    scanResult.className = "mb-4 p-3 bg-red-100 text-red-800 rounded";
-                });
-            });
+    scannerButton.addEventListener('click', function() {
+        console.log('Botón de escáner clickeado. Estado actual:', isScanning);
+        if (!isScanning) {
+            startScanner();
+        } else {
+            stopScanner();
         }
     });
-    </script>
+
+    function startScanner() {
+        console.log('Iniciando escáner...');
+        scannerStatus.textContent = "Buscando cámara...";
+        
+        Instascan.Camera.getCameras().then(function(cameras) {
+            console.log('Cámaras encontradas:', cameras);
+            
+            if (cameras.length > 0) {
+                let selectedCamera = cameras[0];
+                if (cameras.length > 1) {
+                    console.log('Buscando cámara trasera...');
+                    selectedCamera = cameras.find(cam => 
+                        cam.name.toLowerCase().includes('back') || 
+                        cam.name.toLowerCase().includes('rear')
+                    ) || cameras[1];
+                }
+                
+                console.log('Cámara seleccionada:', selectedCamera);
+                
+                scanner = new Instascan.Scanner({
+                    video: videoElement,
+                    mirror: false,
+                    scanPeriod: 1,
+                    backgroundScan: false
+                });
+                
+                console.log('Escáner creado, añadiendo listener...');
+                
+                scanner.addListener('scan', function(content) {
+                    console.log('QR escaneado - Contenido:', content);
+                    handleScannedQR(content);
+                });
+                
+                scanner.start(selectedCamera).then(function() {
+                    console.log('Escáner iniciado correctamente');
+                    videoElement.style.display = 'block';
+                    scannerStatus.textContent = "Escaneando código QR...";
+                    scannerButton.textContent = "Detener cámara";
+                    isScanning = true;
+                }).catch(function(err) {
+                    console.error("Error al iniciar cámara:", err);
+                    scannerStatus.textContent = "Error al iniciar la cámara";
+                });
+            } else {
+                console.warn('No se encontraron cámaras disponibles');
+                scannerStatus.textContent = "No se encontraron cámaras disponibles";
+            }
+        }).catch(function(err) {
+            console.error("Error al acceder a cámaras:", err);
+            scannerStatus.textContent = "Error al acceder a la cámara";
+        });
+    }
+
+    function stopScanner() {
+        console.log('Deteniendo escáner...');
+        if (scanner) {
+            scanner.stop();
+            videoElement.style.display = 'none';
+            scannerButton.textContent = "Activar cámara";
+            scannerStatus.textContent = "Cámara detenida";
+            isScanning = false;
+            console.log('Escáner detenido');
+        } else {
+            console.warn('Intento de detener escáner pero no hay instancia activa');
+        }
+    }
+
+    function handleScannedQR(content) {
+        console.log('Procesando QR escaneado:', content);
+        scanResult.classList.remove('hidden');
+        scanResult.textContent = "Procesando código QR...";
+        scanResult.className = "mb-4 p-3 bg-blue-100 text-blue-800 rounded";
+        
+        console.log('Enviando QR al servidor...');
+        
+        fetch('dispose.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'qr_content=' + encodeURIComponent(content)
+        })
+        .then(response => {
+            console.log('Respuesta recibida del servidor. Status:', response.status);
+            if (!response.ok) {
+                throw new Error('Error en la respuesta del servidor: ' + response.status);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Datos procesados del servidor:', data);
+            if (data.success) {
+                scanResult.textContent = data.message + " ¡+" + data.points_added + " puntos! Total: " + data.new_points + " puntos.";
+                scanResult.className = "mb-4 p-3 bg-green-100 text-green-800 rounded";
+                
+                if (pointsDisplay) {
+                    pointsDisplay.textContent = data.new_points.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " pts";
+                }
+            } else {
+                scanResult.textContent = "Error: " + data.message;
+                scanResult.className = "mb-4 p-3 bg-red-100 text-red-800 rounded";
+            }
+        })
+        .catch(error => {
+            console.error("Error en el proceso de escaneo:", error);
+            scanResult.textContent = "Error al procesar el QR. Intenta nuevamente.";
+            scanResult.className = "mb-4 p-3 bg-red-100 text-red-800 rounded";
+        });
+    }
+    
+    console.log('Configuración de escáner completada');
+});
+</script>
 </body>
 </html>
