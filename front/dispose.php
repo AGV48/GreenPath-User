@@ -31,85 +31,81 @@
 
     // Procesar el escaneo si se recibió un código QR
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['qr_content'])) {
-        $qr_content = $_POST['qr_content'];
-        $user_email = $_SESSION['user_email'];
+    $qr_content = $_POST['qr_content'];
+    $user_email = $_SESSION['user_email'];
+    
+    try {
+        // Decodificar el contenido del QR
+        $qr_data = json_decode($qr_content, true);
         
-        try {
-            // Verificar que el QR sea válido (puedes añadir más validaciones)
-            if (!preg_match('/^GREENPATH_\d+$/', $qr_content)) {
-                throw new Exception("Código QR no válido");
-            }
-            
-            // Verificar si este QR ya fue escaneado por el usuario (para evitar duplicados)
-            $check_query = "SELECT COUNT(*) as count FROM qr_escaneados 
-                           WHERE usuario_email = :email AND qr_code = :qr_content";
-            $check_stmt = $conexion->prepare($check_query);
-            $check_stmt->bindParam(':email', $user_email);
-            $check_stmt->bindParam(':qr_content', $qr_content);
-            $check_stmt->execute();
-            $result = $check_stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if ($result['count'] > 0) {
-                throw new Exception("Ya has escaneado este código QR antes");
-            }
-            
-            // Obtener puntos actuales del usuario
-            $query = "SELECT puntos FROM usuarios WHERE correo = :email";
-            $stmt = $conexion->prepare($query);
-            $stmt->bindParam(':email', $user_email);
-            $stmt->execute();
-            $user_data = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            $current_points = $user_data ? $user_data['puntos'] : 0;
-            $points_to_add = 10; // Puntos a añadir por cada escaneo
-            
-            // Iniciar transacción
-            $conexion->beginTransaction();
-            
-            // Actualizar puntos en la base de datos
-            $update_query = "UPDATE usuarios SET puntos = puntos + :points WHERE correo = :email";
-            $update_stmt = $conexion->prepare($update_query);
-            $update_stmt->bindParam(':points', $points_to_add);
-            $update_stmt->bindParam(':email', $user_email);
-            $update_stmt->execute();
-            
-            // Registrar el QR escaneado
-            $register_query = "INSERT INTO qr_escaneados (usuario_email, qr_code, puntos_obtenidos, fecha_escaneo)
-                             VALUES (:email, :qr_content, :points, NOW())";
-            $register_stmt = $conexion->prepare($register_query);
-            $register_stmt->bindParam(':email', $user_email);
-            $register_stmt->bindParam(':qr_content', $qr_content);
-            $register_stmt->bindParam(':points', $points_to_add);
-            $register_stmt->execute();
-            
-            // Confirmar transacción
-            $conexion->commit();
-            
-            // Devolver respuesta JSON
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'message' => '¡Puntos añadidos correctamente!',
-                'new_points' => $current_points + $points_to_add,
-                'points_added' => $points_to_add
-            ]);
-            exit();
-            
-        } catch (Exception $e) {
-            // Revertir transacción si hay error
-            if ($conexion->inTransaction()) {
-                $conexion->rollBack();
-            }
-            
-            error_log("Error al procesar QR: " . $e->getMessage());
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => false,
-                'message' => $e->getMessage()
-            ]);
-            exit();
+        // Validar que sea un QR válido de GREENPATH
+        if (!$qr_data || !isset($qr_data['system']) || $qr_data['system'] !== 'GREENPATH') {
+            throw new Exception("Código QR no válido");
         }
+        
+        // Verificar si este QR ya fue escaneado por el usuario
+        $check_query = "SELECT COUNT(*) as count FROM qr_escaneados 
+               WHERE usuario_email = :email AND qr_id = :qr_id";
+        $check_stmt = $conexion->prepare($check_query);
+        $check_stmt->bindParam(':email', $user_email);
+        $check_stmt->bindParam(':qr_id', $qr_data['waste_id']);
+        $check_stmt->execute();
+        $result = $check_stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($result['count'] > 0) {
+            throw new Exception("Ya has escaneado este código QR antes");
+        }
+        
+        // Resto del código para otorgar puntos...
+        $points_to_add = 10; // Puntos por desecho correcto
+        
+        // Iniciar transacción
+        $conexion->beginTransaction();
+        
+        // Actualizar puntos
+        $update_query = "UPDATE usuarios SET puntos = puntos + :points WHERE correo = :email";
+        $update_stmt = $conexion->prepare($update_query);
+        $update_stmt->bindParam(':points', $points_to_add);
+        $update_stmt->bindParam(':email', $user_email);
+        $update_stmt->execute();
+        
+        // Registrar el QR escaneado
+        $register_query = "INSERT INTO qr_escaneados (usuario_email, qr_id, waste_type, points_earned, scan_date)
+                  VALUES (:email, :qr_id, :waste_type, :points, NOW())";
+        $register_stmt = $conexion->prepare($register_query);
+        $register_stmt->bindParam(':email', $user_email);
+        $register_stmt->bindParam(':qr_id', $qr_data['waste_id']);
+        $register_stmt->bindParam(':waste_type', $qr_data['waste_type']);
+        $register_stmt->bindParam(':points', $points_to_add);
+        $register_stmt->execute();
+        
+        $conexion->commit();
+        
+        // Respuesta JSON
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'message' => '¡Puntos añadidos por desechar ' . $qr_data['waste_name'] . ' en la caneca ' . $qr_data['bin_color'] . '!',
+            'new_points' => $current_points + $points_to_add,
+            'points_added' => $points_to_add,
+            'waste_name' => $qr_data['waste_name'],
+            'bin_color' => $qr_data['bin_color']
+        ]);
+        exit();
+        
+    } catch (Exception $e) {
+        if ($conexion->inTransaction()) {
+            $conexion->rollBack();
+        }
+        
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'message' => $e->getMessage()
+        ]);
+        exit();
     }
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
