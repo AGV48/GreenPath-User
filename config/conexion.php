@@ -1,15 +1,20 @@
 <?php
+require_once __DIR__ . '/../vendor/autoload.php';
+
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
+$dotenv->load();
+
 // Verificar si el driver está disponible
 if (!in_array('pgsql', PDO::getAvailableDrivers())) {
     die('Error: El driver PDO para PostgreSQL no está instalado. Contacta al administrador.');
 }
 
-// Configuración (usa variables de entorno en producción)
-$host = 'ep-round-tree-a551uewg-pooler.us-east-2.aws.neon.tech';
-$port = '5432';
-$dbname = 'Greenpath';
-$user = 'AGV';
-$password = 'TtfvlRibHh93';
+// Configuración de la conexión
+$host = $_ENV['DB_HOST'];
+$port = $_ENV['DB_PORT'];
+$dbname = $_ENV['DB_NAME'];
+$user = $_ENV['DB_USER'];
+$password = $_ENV['DB_PASSWORD'];
 
 try {
     $dsn = "pgsql:host=$host;port=$port;dbname=$dbname;sslmode=require";
@@ -29,6 +34,7 @@ try {
     $errorMsg .= "Driver disponible: " . (in_array('pgsql', PDO::getAvailableDrivers()) ? 'Sí' : 'No');
     
     error_log($errorMsg);
+    echo ($e);
     die("Lo sentimos, estamos experimentando problemas técnicos. Por favor intente más tarde.");
 }
 ?>
